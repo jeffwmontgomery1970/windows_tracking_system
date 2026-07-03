@@ -129,25 +129,26 @@ app.put('/api/geofences/:id', (req, res) => {
 	const { minlat, maxlat, minlong, maxlong } = req.body;
 	let stmt_str = `UPDATE geofences SET`;
 	let params = []
-	if (minlat) {
-	    stmt_str += ` minlat = ?`;
+
+	if (minlat !== undefined) {
+		stmt_str += ` minlat = ?`;
 		params.push(minlat);
 	}
-	if (maxlat) {
+	if (maxlat !== undefined) {
 		if (params.length > 0) {
 			stmt_str += `,`;
 		}
 		stmt_str += ` maxlat = ?`;
 	    params.push(maxlat);
 	}	
-	if (minlong) {
+	if (minlong !== undefined) {
 		if (params.length > 0) {
 			stmt_str += `,`;
 		}
 		stmt_str += ` minlong = ?`;
 		params.push(minlong);
 	}
-	if (maxlong) {
+	if (maxlong !== undefined) {
 		if (params.length > 0) {
 			stmt_str += `,`;
 		}
@@ -190,12 +191,41 @@ app.get('/api/devices', (req, res) => {
   res.json(items);
 });
 
-// POST a new geofence
+// POST a new device
 app.post('/api/devices', (req, res) => {
   const { description } = req.body;
   const stmt = db.prepare('INSERT INTO devices (description) VALUES (?)');
   const info = stmt.run(description);
   res.json({ id: info.lastInsertRowid, description });
+});
+
+// Change the description of a device
+app.put('/api/devices/:id', (req, res) => {
+  const { id } = req.params;
+  const { description } = req.body;
+  if (!description) {
+    return res.status(400).json({ error: 'Description is required.' });
+  }
+
+  const stmt = db.prepare('UPDATE devices SET description = ? WHERE id = ?');
+  const info = stmt.run(description, id);
+  if (info.changes === 0) {
+    res.status(404).json({ error: 'Device id not found.' });
+  } else {
+    res.json({ message: 'Device updated successfully.' });
+  }
+});
+
+// Delete a device
+app.delete('/api/devices/:id', (req, res) => {
+  const { id } = req.params;
+  const stmt = db.prepare('DELETE FROM devices WHERE id = ?');
+  const info = stmt.run(id);
+  if (info.changes === 0) {
+    res.status(404).json({ error: 'Device id not found.' });
+  } else {
+    res.json({ message: 'Device deleted successfully.' });
+  }
 });
 
 // Change the description of a device
